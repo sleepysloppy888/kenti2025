@@ -4,75 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>КЕНТИ-2025</title>
-    <!-- Подключаем библиотеку Supabase -->
+    <!-- Библиотека Supabase -->
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --bg: #0a0a0a; --text: #ffffff; --accent: #3b82f6; --gray: #1f2937; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .hidden { display: none !important; }
         
-        /* Стили страниц */
         section { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
         #home { flex: 1; justify-content: center; text-align: center; }
         
         h1 { font-size: clamp(2rem, 10vw, 4rem); letter-spacing: 5px; margin-bottom: 30px; text-transform: uppercase; }
         
-        /* Кнопки и формы */
         button { background: var(--accent); color: white; border: none; padding: 15px 30px; font-size: 1rem; cursor: pointer; border-radius: 8px; transition: 0.3s; font-weight: bold; width: 100%; }
         button:hover { opacity: 0.9; transform: translateY(-2px); }
         button:disabled { background: #444; cursor: not-allowed; transform: none; }
         
-        .auth-card { background: var(--gray); padding: 30px; border-radius: 15px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .auth-card { background: var(--gray); padding: 30px; border-radius: 15px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); box-sizing: border-box;}
         input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
 
-        /* Голосование */
-        .nomination { background: var(--gray); padding: 20px; border-radius: 12px; margin-bottom: 25px; width: 100%; text-align: left; }
-        .nomination h3 { margin-top: 0; display: flex; flex-direction: column; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .winner-tag { color: #10b981; font-size: 0.85rem; margin-top: 5px; text-transform: uppercase; }
+        .nomination { background: var(--gray); padding: 20px; border-radius: 12px; margin-bottom: 25px; width: 100%; text-align: left; box-sizing: border-box; }
+        .winner-tag { color: #10b981; font-size: 0.85rem; display: block; margin-top: 5px; }
         
         .nominee-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #2d3748; }
-        .nominee-item:last-child { border-bottom: none; }
-        .vote-btn { width: auto; padding: 8px 16px; font-size: 0.9rem; }
+        .vote-btn { width: auto; padding: 8px 16px; font-size: 0.8rem; }
         
-        .user-info { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; background: #1a202c; padding: 10px 20px; border-radius: 10px; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; background: #1a202c; padding: 10px 20px; border-radius: 10px; box-sizing: border-box;}
     </style>
 </head>
 <body>
 
-    <!-- 1. Главная страница -->
+    <!-- Главная -->
     <section id="home">
         <h1>КЕНТИ-2025</h1>
         <button onclick="goToAuth()">ПЕРЕЙТИ К ГОЛОСОВАНИЮ</button>
     </section>
 
-    <!-- 2. Авторизация -->
+    <!-- Авторизация -->
     <section id="auth" class="hidden">
         <div class="auth-card">
-            <h2>Регистрация КЕНТИ</h2>
-            <p style="color: #a0aec0; font-size: 0.9rem;">Введи ник Discord и любой пароль</p>
-            <input type="text" id="username" placeholder="Твой ник в Discord">
-            <input type="password" id="password" placeholder="Придумай пароль">
-            <button onclick="handleLogin()">ВОЙТИ / СОЗДАТЬ</button>
+            <h2>Регистрация</h2>
+            <input type="text" id="username" placeholder="Ник в Discord">
+            <input type="password" id="password" placeholder="Пароль">
+            <button onclick="handleLogin()">ВОЙТИ</button>
         </div>
     </section>
 
-    <!-- 3. Голосование -->
+    <!-- Голосование -->
     <section id="voting" class="hidden">
         <div class="user-info">
-            <span id="user-display" style="font-weight: bold; color: #60a5fa;"></span>
-            <button onclick="logout()" style="width: auto; background: #e53e3e; padding: 6px 12px;">Выйти</button>
+            <span id="user-display"></span>
+            <button onclick="logout()" style="width: auto; background: #ef4444; padding: 5px 10px;">Выйти</button>
         </div>
         <div id="nomination-list" style="width: 100%;">Загрузка номинаций...</div>
     </section>
 
 <script>
-    // === КОНФИГУРАЦИЯ SUPABASE ===
+    // === ДАННЫЕ SUPABASE (ЗАМЕНИ ТУТ) ===
     const SUPABASE_URL = 'https://fvutldjdfohsicciiqav.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2dXRsZGpkZm9oc2ljY2lpcWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDY0NTYsImV4cCI6MjA4NjE4MjQ1Nn0.9OoAdbtpjIqLUJJkvbyUEnFCMj1qHrvhvjV43lZn2nk';
     
-    const { createClient } = window.supabase;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+    let supabase;
+    
+    // Номинанты
     const nominationsData = {
         "Лучший тиммейт": ["Fiven", "3DAROVO", "Иван Горин", "lyskofelo", "admin_v_kedah666", "sleepysloppy"],
         "Легенда сервера": ["Fiven", "3DAROVO", "Иван Горин", "lyskofelo", "admin_v_kedah666"],
@@ -84,7 +78,15 @@
 
     let currentUser = localStorage.getItem('kenti_user');
 
-    // Навигация
+    // Инициализация при загрузке
+    window.onload = () => {
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } else {
+            console.error("Библиотека Supabase не найдена");
+        }
+    };
+
     function goToAuth() {
         document.getElementById('home').classList.add('hidden');
         if (currentUser) {
@@ -96,11 +98,7 @@
 
     function handleLogin() {
         const user = document.getElementById('username').value.trim();
-        const pass = document.getElementById('password').value.trim();
-        if (user.length < 2 || pass.length < 3) {
-            alert("Ник и пароль слишком короткие!");
-            return;
-        }
+        if (user.length < 2) return alert("Введите ник");
         currentUser = user;
         localStorage.setItem('kenti_user', user);
         showVotingPage();
@@ -109,54 +107,40 @@
     function showVotingPage() {
         document.getElementById('auth').classList.add('hidden');
         document.getElementById('voting').classList.remove('hidden');
-        document.getElementById('user-display').innerText = `Ник: ${currentUser}`;
+        document.getElementById('user-display').innerText = `Привет, ${currentUser}`;
         renderAll();
     }
 
-    // Рендер и логика базы
     async function renderAll() {
         const listDiv = document.getElementById('nomination-list');
-        
-        // Получаем все голоса из БД
         const { data: allVotes, error } = await supabase.from('votes').select('*');
         
         if (error) {
-            listDiv.innerHTML = `<p style="color:red">Ошибка БД: Проверь ключи и SQL-правила (Policies)</p>`;
+            listDiv.innerHTML = "Ошибка базы данных. Проверьте настройки SQL в Supabase.";
             return;
         }
 
         listDiv.innerHTML = '';
-
         for (let cat in nominationsData) {
             const votesInCat = allVotes.filter(v => v.nomination === cat);
             const userChoice = votesInCat.find(v => v.username === currentUser);
             
-            // Расчет лидера
             const counts = {};
             votesInCat.forEach(v => counts[v.nominee] = (counts[v.nominee] || 0) + 1);
             let leader = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b, null);
 
             const card = document.createElement('div');
             card.className = 'nomination';
-            card.innerHTML = `
-                <h3>
-                    ${cat}
-                    ${leader ? `<span class="winner-tag">🏆 Лидирует: ${leader} (${counts[leader]})</span>` : ''}
-                </h3>
-            `;
+            card.innerHTML = `<h3>${cat} ${leader ? `<span class="winner-tag">🏆 Лидер: ${leader} (${counts[leader]})</span>` : ''}</h3>`;
 
             nominationsData[cat].forEach(nominee => {
                 const count = counts[nominee] || 0;
-                const isSelected = userChoice?.nominee === nominee;
-                
                 const row = document.createElement('div');
                 row.className = 'nominee-item';
                 row.innerHTML = `
-                    <span>${nominee} <small style="color:#718096; margin-left:8px;">${count} голос(ов)</small></span>
-                    <button class="vote-btn" 
-                        onclick="sendVote('${cat}', '${nominee}')" 
-                        ${userChoice ? 'disabled' : ''}>
-                        ${isSelected ? 'Твой голос' : (userChoice ? '—' : 'Голосовать')}
+                    <span>${nominee} (${count})</span>
+                    <button class="vote-btn" onclick="sendVote('${cat}', '${nominee}')" ${userChoice ? 'disabled' : ''}>
+                        ${userChoice?.nominee === nominee ? 'Выбрано' : 'Голос'}
                     </button>
                 `;
                 card.appendChild(row);
@@ -166,22 +150,14 @@
     }
 
     async function sendVote(cat, name) {
-        const { error } = await supabase
-            .from('votes')
-            .insert([{ username: currentUser, nomination: cat, nominee: name }]);
-        
-        if (error) {
-            alert("Ошибка: возможно, ты уже голосовал здесь!");
-        } else {
-            renderAll();
-        }
+        await supabase.from('votes').insert([{ username: currentUser, nomination: cat, nominee: name }]);
+        renderAll();
     }
 
     function logout() {
-        localStorage.removeItem('kenti_user');
+        localStorage.clear();
         location.reload();
     }
 </script>
 </body>
 </html>
-
