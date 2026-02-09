@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>КЕНТИ-2025</title>
-    <!-- Пытаемся загрузить библиотеку из двух разных мест для надежности -->
-    <script src="https://unpkg.com"></script>
+    <!-- Основной скрипт -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --bg: #0a0a0a; --text: #ffffff; --accent: #3b82f6; --gray: #1f2937; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
@@ -13,26 +13,32 @@
         section { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; text-align: center; }
         #home { flex: 1; display: flex; flex-direction: column; justify-content: center; }
         h1 { font-size: 3rem; letter-spacing: 5px; margin-bottom: 30px; }
-        button { background: var(--accent); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { background: var(--accent); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        button:disabled { background: #444; cursor: not-allowed; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box; }
         .nomination { background: var(--gray); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: left; }
         .nominee-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
         .vote-btn { width: auto; padding: 5px 10px; font-size: 0.8rem; }
         .winner-tag { color: #10b981; font-size: 0.8rem; display: block; margin-bottom: 10px; font-weight: bold; }
-        .error-msg { color: #ff4b4b; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .error-card { color: #ff4b4b; background: rgba(255,0,0,0.1); padding: 15px; border-radius: 10px; border: 1px solid red; margin-top: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <section id="home">
         <h1>КЕНТИ-2025</h1>
-        <button id="main-btn" onclick="checkAndGo()">ПЕРЕЙТИ К ГОЛОСОВАНИЮ</button>
-        <div id="lib-error" class="hidden error-msg">Ошибка: Библиотека Supabase не загружена. Попробуй отключить AdBlock или сменить браузер.</div>
+        <button id="main-btn" onclick="initApp()">ПЕРЕЙТИ К ГОЛОСОВАНИЮ</button>
+        <div id="lib-error" class="hidden error-card">
+            <b>Библиотека заблокирована!</b><br>
+            Твой браузер или расширение (AdBlock) не дает загрузить базу данных.<br>
+            <button onclick="location.reload()" style="background:#444; margin-top:10px; padding:5px;">Попробовать снова</button>
+        </div>
     </section>
 
     <section id="auth" class="hidden">
-        <div style="background: var(--gray); padding: 20px; border-radius: 15px;">
-            <h2>Регистрация</h2>
+        <div style="background: var(--gray); padding: 25px; border-radius: 15px;">
+            <h2>Вход</h2>
             <input type="text" id="username" placeholder="Ник в Discord">
             <button onclick="login()">ВОЙТИ</button>
         </div>
@@ -43,11 +49,10 @@
             <span id="user-display" style="color: var(--accent); font-weight: bold;"></span>
             <button onclick="logout()" style="width:auto; background:#444; padding: 5px 10px; font-size: 0.8rem;">Выход</button>
         </div>
-        <div id="nomination-list">Загрузка номинаций...</div>
+        <div id="nomination-list">Загрузка данных...</div>
     </section>
 
 <script>
-    // === ДАННЫЕ SUPABASE ===
     const SB_URL = 'https://fvutldjdfohsicciiqav.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2dXRsZGpkZm9oc2ljY2lpcWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDY0NTYsImV4cCI6MjA4NjE4MjQ1Nn0.9OoAdbtpjIqLUJJkvbyUEnFCMj1qHrvhvjV43lZn2nk';
     
@@ -61,13 +66,17 @@
         "Комфортик": ["Иван Горин", "lyskofelo", "admin_v_kedah666", "сыкло", "snaker mai", "sleepysloppy", "Fiven", "3DAROVO", "Zeus"]
     };
 
-    function checkAndGo() {
-        if (!window.supabase) {
+    function initApp() {
+        // Проверяем наличие библиотеки Supabase
+        if (typeof supabase === 'undefined' && !window.supabase) {
             document.getElementById('lib-error').classList.remove('hidden');
+            document.getElementById('main-btn').classList.add('hidden');
             return;
         }
-        
-        supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        if (!supabase) {
+            supabase = window.supabase.createClient(SB_URL, SB_KEY);
+        }
         
         const savedUser = localStorage.getItem('kenti_user');
         if (savedUser) {
@@ -85,14 +94,14 @@
 
     function login() {
         const val = document.getElementById('username').value.trim();
-        if(val.length < 2) return alert("Введите ник");
+        if(val.length < 2) return alert("Введите ник (мин. 2 символа)");
         localStorage.setItem('kenti_user', val);
         showPage('voting');
     }
 
     async function render() {
         const currentUser = localStorage.getItem('kenti_user');
-        document.getElementById('user-display').innerText = currentUser;
+        document.getElementById('user-display').innerText = `Ник: ${currentUser}`;
         const list = document.getElementById('nomination-list');
         
         try {
@@ -113,25 +122,27 @@
                 div.innerHTML = `<h3>${cat}</h3>${top ? `<span class="winner-tag">🏆 Лидер: ${top} (${counts[top]})</span>` : ''}`;
                 
                 nominationsData[cat].forEach(n => {
-                    const c = counts[n] || 0;
+                    const c = counts || 0;
                     div.innerHTML += `
                         <div class="nominee-item">
                             <span>${n} (${c})</span>
                             <button class="vote-btn" onclick="vote('${cat}','${n}')" ${mine ? 'disabled' : ''}>
-                                ${mine?.nominee === n ? '✅' : (mine ? '-' : 'Голос')}
+                                ${mine?.nominee === n ? 'Твой выбор' : (mine ? '—' : 'Голос')}
                             </button>
                         </div>`;
                 });
                 list.appendChild(div);
             }
         } catch (e) {
-            list.innerHTML = `<div class="error-msg">Ошибка базы данных. Убедись, что SQL-код выполнен в Supabase!</div>`;
+            list.innerHTML = `<div class="error-card">Ошибка подключения к базе. Проверь интернет или настройки Supabase.</div>`;
+            console.error(e);
         }
     }
 
     async function vote(c, n) {
         const currentUser = localStorage.getItem('kenti_user');
-        await supabase.from('votes').insert([{ username: currentUser, nomination: c, nominee: n }]);
+        const { error } = await supabase.from('votes').insert([{ username: currentUser, nomination: c, nominee: n }]);
+        if (error) alert("Ошибка при голосовании!");
         render();
     }
 
@@ -140,11 +151,12 @@
         location.reload();
     }
 
-    // Если уже залогинен, сразу инициализируем
-    if (localStorage.getItem('kenti_user') && window.supabase) {
-        setTimeout(checkAndGo, 500);
-    }
+    // Авто-логин при загрузке страницы, если библиотека доступна
+    window.onload = () => {
+        if (localStorage.getItem('kenti_user')) {
+            setTimeout(initApp, 800);
+        }
+    };
 </script>
 </body>
 </html>
-
