@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>КЕНТИ-2025</title>
+    <script src="https://cdn.jsdelivr.net"></script>
+    <style>
+        :root { --bg: #0a0a0a; --text: #ffffff; --accent: #3b82f6; --gray: #1f2937; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .hidden { display: none !important; }
+        #home, #auth, .container { text-align: center; width: 100%; max-width: 600px; padding: 20px; }
+        h1 { font-size: 3.5rem; letter-spacing: 4px; margin: 40px 0; }
+        button { background: var(--accent); color: white; border: none; padding: 12px 24px; cursor: pointer; border-radius: 6px; font-weight: bold; }
+        button:disabled { background: #444; cursor: not-allowed; }
+        .nomination { background: var(--gray); padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: left; }
+        .nominee-item { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; padding: 8px; border-bottom: 1px solid #333; }
+        .winner { color: #10b981; font-size: 0.9rem; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: white; border-radius: 6px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <section id="home">
+        <h1>КЕНТИ-2025</h1>
+        <button onclick="showAuth()">ПЕРЕЙТИ К ГОЛОСОВАНИЮ</button>
+    </section>
+
+    <section id="auth" class="hidden">
+        <div style="background: var(--gray); padding: 30px; border-radius: 15px;">
+            <h2>Вход / Регистрация</h2>
+            <input type="text" id="username" placeholder="Ник в Discord">
+            <input type="password" id="password" placeholder="Пароль">
+            <button onclick="handleAuth()">ВОЙТИ</button>
+        </div>
+    </section>
+
+    <section id="voting" class="hidden" class="container">
+        <div class="container">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="display-user"></h2>
+                <button onclick="logout()" style="background:#ef4444; padding: 5px 10px; font-size: 0.8rem;">Выйти</button>
+            </div>
+            <div id="nomination-list">Загрузка данных...</div>
+        </div>
+    </section>
+
+<script>
+    // ВСТАВЬ СВОИ ДАННЫЕ ИЗ SUPABASE ТУТ:
+    const SUPABASE_URL = 'https://fvutldjdfohsicciiqav.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2dXRsZGpkZm9oc2ljY2lpcWF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDY0NTYsImV4cCI6MjA4NjE4MjQ1Nn0.9OoAdbtpjIqLUJJkvbyUEnFCMj1qHrvhvjV43lZn2nk';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const nominations = {
+        "Лучший тиммейт": ["Fiven", "3DAROVO", "Иван Горин", "lyskofelo", "admin_v_kedah666", "sleepysloppy"],
+        "Легенда сервера": ["Fiven", "3DAROVO", "Иван Горин", "lyskofelo", "admin_v_kedah666"],
+        "Игрок CS": ["Fiven", "rudy", "3DAROVO", "сыкло", "Иван Горин", "Zeus"],
+        "Игрок DOTA2": ["Иван Горин", "lyskofelo", "admin_v_kedah666", "Horohi", "сыкло", "Aniraqq"],
+        "Травитель баек": ["Иван Горин", "lyskofelo", "admin_v_kedah666", "сыкло", "snaker mai"],
+        "Комфортик": ["Иван Горин", "lyskofelo", "admin_v_kedah666", "сыкло", "snaker mai", "sleepysloppy", "Fiven", "3DAROVO", "Zeus"]
+    };
+
+    let currentUser = localStorage.getItem('kenti_user');
+
+    function showAuth() {
+        document.getElementById('home').classList.add('hidden');
+        if (currentUser) { showVoting(); } 
+        else { document.getElementById('auth').classList.remove('hidden'); }
+    }
+
+    function handleAuth() {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        if (user && pass) {
+            currentUser = user;
+            localStorage.setItem('kenti_user', user);
+            showVoting();
+        }
+    }
+
+    async function showVoting() {
+        document.getElementById('auth').classList.add('hidden');
+        document.getElementById('voting').classList.remove('hidden');
+        document.getElementById('display-user').innerText = currentUser;
+        loadAndRender();
+    }
+
+    async function loadAndRender() {
+        const { data: allVotes } = await supabase.from('votes').select('*');
+        const userVotes = allVotes.filter(v => v.username === currentUser);
+        
+        const list = document.getElementById('nomination-list');
+        list.innerHTML = '';
+
+        for (let category in nominations) {
+            const catVotes = allVotes.filter(v => v.nomination === category);
+            const userChoice = userVotes.find(v => v.nomination === category);
+            
+            // Считаем результаты
+            const counts = {};
+            catVotes.forEach(v => counts[v.nominee] = (counts[v.nominee] || 0) + 1);
+            let winner = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b, null);
+
+            const div = document.createElement('div');
+            div.className = 'nomination';
+            div.innerHTML = `<h3>${category} ${winner ? `<span class="winner">🏆 Лидер: ${winner}</span>` : ''}</h3>`;
+
+            nominations[category].forEach(name => {
+                const count = counts[name] || 0;
+                const item = document.createElement('div');
+                item.className = 'nominee-item';
+                item.innerHTML = `
+                    <span>${name} (${count})</span>
+                    <button onclick="vote('${category}', '${name}')" ${userChoice ? 'disabled' : ''}>
+                        ${userChoice?.nominee === name ? '✅' : (userChoice ? '-' : 'Голос')}
+                    </button>
+                `;
+                div.appendChild(item);
+            });
+            list.appendChild(div);
+        }
+    }
+
+    async function vote(category, nominee) {
+        await supabase.from('votes').insert([{ username: currentUser, nomination: category, nominee: nominee }]);
+        loadAndRender();
+    }
+
+    function logout() {
+        localStorage.clear();
+        location.reload();
+    }
+</script>
+</body>
+</html>
